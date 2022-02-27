@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
-import { from, map, Observable, switchMap } from 'rxjs';
 
 @Injectable()
 export class UsersService {
@@ -18,25 +17,6 @@ export class UsersService {
   }
 
   async validateUser(email: string, password: string): Promise<User> {
-    // return from(
-    //   this.userRepository.findOne(
-    //     { email },
-    //     {
-    //       select: ['id', 'firstName', 'lastName', 'email', 'password'],
-    //     },
-    //   ),
-    // ).pipe(
-    //   switchMap((user: User) =>
-    //     from(bcrypt.compare(password, user.password)).pipe(
-    //       map((isValidPassword: boolean) => {
-    //         if (isValidPassword) {
-    //           delete user.password;
-    //           return user;
-    //         }
-    //       }),
-    //     ),
-    //   ),
-    // );
     const user = await this.userRepository.findOne(
       { email },
       {
@@ -55,7 +35,6 @@ export class UsersService {
     try {
       const { firstName, lastName, email, password } = newUser;
       const hashedPassword = await this.hashPassword(password);
-
       const registeredUser = await this.userRepository.save({
         firstName,
         lastName,
