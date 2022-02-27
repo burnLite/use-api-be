@@ -1,26 +1,107 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
+import * as bcrypt from 'bcrypt';
+import { from, map, Observable, switchMap } from 'rxjs';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private jwtService: JwtService,
+  ) {}
+  //
+  async hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async validateUser(email: string, password: string): Promise<User> {
+    // return from(
+    //   this.userRepository.findOne(
+    //     { email },
+    //     {
+    //       select: ['id', 'firstName', 'lastName', 'email', 'password'],
+    //     },
+    //   ),
+    // ).pipe(
+    //   switchMap((user: User) =>
+    //     from(bcrypt.compare(password, user.password)).pipe(
+    //       map((isValidPassword: boolean) => {
+    //         if (isValidPassword) {
+    //           delete user.password;
+    //           return user;
+    //         }
+    //       }),
+    //     ),
+    //   ),
+    // );
+    const user = await this.userRepository.findOne(
+      { email },
+      {
+        select: ['id', 'firstName', 'lastName', 'email', 'password'],
+      },
+    );
+    if (user) {
+      if (bcrypt.compare(password, user.password)) {
+        delete user.password;
+        return user;
+      }
+    }
+  }
+  //
+  async register(newUser: User): Promise<User> {
+    try {
+      const { firstName, lastName, email, password } = newUser;
+      const hashedPassword = await this.hashPassword(password);
+
+      const registeredUser = await this.userRepository.save({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+      });
+      delete registeredUser.password;
+      return registeredUser;
+    } catch (error) {
+      throw error;
+    }
+  }
+  //
+  async login(credentials: User): Promise<{ accessToken: string; user: User }> {
+    const { email, password } = credentials;
+    const user = await this.validateUser(email, password);
+    console.log(credentials);
+    console.log(user);
+    if (user) {
+      // create JWT credentials
+      const accessToken = await this.jwtService.signAsync({ user });
+      return { accessToken, user };
+    }
+  }
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    try {
+      return await this.userRepository.findOne(id);
+    } catch (error) {
+      throw error;
+    }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUser: User) {
+    try {
+      const pet = await this.userRepository.update(id, updateUser);
+      return pet;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  remove(id: string) {
+    return this.userRepository.delete(id);
   }
 }
