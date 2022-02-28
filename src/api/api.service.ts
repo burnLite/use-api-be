@@ -74,7 +74,6 @@ export class ApiService {
       } else {
         api = await this.apiRepository.findOne({ userId: 'DEFAULT' });
       }
-      console.log(api);
       return api.data;
     } catch (error) {
       throw error;
