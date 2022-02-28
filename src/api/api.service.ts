@@ -74,7 +74,7 @@ export class ApiService {
     }
   }
   // Find specific API item
-  async findOne(id: string, query: queryType | undefined): Promise<SingleApi> {
+  async findOne(id: number, query: queryType | undefined): Promise<SingleApi> {
     try {
       let api = null;
       if (query.api_key) {
@@ -92,10 +92,25 @@ export class ApiService {
     }
   }
   //
-  async update(id: number, updatePost: Api): Promise<UpdateResult> {
+  async update(
+    id: number,
+    updatePost: any,
+    query: queryType | undefined,
+  ): Promise<UpdateResult> {
     try {
-      const pet = await this.apiRepository.update(id, updatePost);
-      return pet;
+      const user = await this.userService.findByApiKey(query.api_key);
+      if (!user) throw new ForbiddenException();
+      let api = await this.apiRepository.findOne({
+        userId: user.id.toString(),
+      });
+      const index = api.data.findIndex((item: any) => item.id == id);
+      api.data[index] = { ...api.data[index], ...updatePost };
+
+      return await this.apiRepository.update(
+        { userId: user.id.toString() },
+        { data: api.data },
+      );
+      return;
     } catch (error) {
       throw error;
     }

@@ -23,7 +23,7 @@ export class ApiController {
 
   @Get(':id')
   findOne(@Param('id') id: string, @Query() query) {
-    return this.apiService.findOne(id, query);
+    return this.apiService.findOne(+id, query);
   }
 
   @Post()
@@ -32,8 +32,8 @@ export class ApiController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() newPost: Api) {
-    return this.apiService.update(+id, newPost);
+  update(@Param('id') id: string, @Body() newPost: Api, @Query() query) {
+    return this.apiService.update(+id, newPost, query);
   }
 
   @Delete(':id')
