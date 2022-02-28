@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from './users/users.module';
-import { ApiModule } from './api/api.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ApiModule } from './api/api.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -12,7 +12,6 @@ import { ConfigModule } from '@nestjs/config';
       url: process.env.MONGO_DB,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       useUnifiedTopology: true,
-      // useNewUrlParser: true,
       synchronize: true,
     }),
     UsersModule,

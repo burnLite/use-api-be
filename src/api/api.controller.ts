@@ -1,11 +1,12 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import { ApiService } from './api.service';
 import { Api } from './entities/api.entity';
@@ -14,22 +15,23 @@ import { Api } from './entities/api.entity';
 export class ApiController {
   constructor(private readonly apiService: ApiService) {}
 
+  @Get()
+  findAll(@Query() query) {
+    return this.apiService.findAll(query);
+    return [];
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string, @Query() query) {
+    return this.apiService.findOne(id, query);
+  }
+
   @Post()
   create(@Body() newPost: Api) {
     return this.apiService.create(newPost);
   }
 
-  @Get()
-  findAll() {
-    return this.apiService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.apiService.findOne(+id);
-  }
-
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() newPost: Api) {
     return this.apiService.update(+id, newPost);
   }
