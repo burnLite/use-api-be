@@ -1,7 +1,7 @@
 import { Column, Entity, ObjectID, ObjectIdColumn } from 'typeorm';
 
 export interface SingleApi {
-  id: number;
+  id: string;
   name: string;
   type: string;
   legs: number;

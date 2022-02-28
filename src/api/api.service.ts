@@ -7,8 +7,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UsersService } from 'src/users/users.service';
-import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
+import { v1 as uuidv1 } from 'uuid';
 import { Api, SingleApi } from './entities/api.entity';
+
 // Interfaces
 interface queryType {
   api_key: string;
@@ -22,6 +24,19 @@ export class ApiService {
     @Inject(forwardRef(() => UsersService))
     private userService: UsersService,
   ) {}
+  // Check user by API_KEY and Index of specific item
+  async checkApiKey(query: queryType | undefined, id?: string | undefined) {
+    const user = await this.userService.findByApiKey(query.api_key);
+    if (!user) throw new ForbiddenException();
+    let api = await this.apiRepository.findOne({
+      userId: user.id.toString(),
+    });
+    let index = null;
+    if (id) {
+      index = api.data.findIndex((item: any) => item.id == id);
+    }
+    return { index, api, user };
+  }
   // GENERATE APIs
   async generateApi(userId: string) {
     try {
@@ -29,9 +44,9 @@ export class ApiService {
         userId,
         data: [],
       };
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 10; i++) {
         const animal = {
-          id: i + 1,
+          id: uuidv1(),
           name: faker.name.firstName(),
           type: faker.animal.type(),
           legs: Math.floor(Math.random() * (4 - 1) + 1),
@@ -44,14 +59,6 @@ export class ApiService {
       await this.apiRepository.save(apiData);
     } catch (error) {
       throw new Error();
-    }
-  }
-  // ADD TO CURENT API
-  async create(newPost: Api) {
-    try {
-      return await this.apiRepository.save(newPost);
-    } catch (error) {
-      throw error;
     }
   }
   // FIND ALL
@@ -74,7 +81,7 @@ export class ApiService {
     }
   }
   // Find specific API item
-  async findOne(id: number, query: queryType | undefined): Promise<SingleApi> {
+  async findOne(id: string, query: queryType | undefined): Promise<SingleApi> {
     try {
       let api = null;
       if (query.api_key) {
@@ -91,32 +98,67 @@ export class ApiService {
       throw error;
     }
   }
-  //
+  // ADD TO CURENT API
+  async create(newPost: SingleApi, query: queryType): Promise<SingleApi> {
+    const { name, type, legs, img, tail, friends } = newPost;
+    try {
+      const { api, user } = await this.checkApiKey(query);
+      if (api.data.length < 20) {
+        const newPost = {
+          id: uuidv1(),
+          name,
+          type,
+          legs,
+          img,
+          tail,
+          friends,
+        };
+        api.data.push(newPost);
+        await this.apiRepository.update(
+          { userId: user.id.toString() },
+          { data: api.data },
+        );
+        return newPost;
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+  // Update
   async update(
-    id: number,
+    id: string,
     updatePost: any,
     query: queryType | undefined,
-  ): Promise<UpdateResult> {
+  ): Promise<SingleApi> {
     try {
-      const user = await this.userService.findByApiKey(query.api_key);
-      if (!user) throw new ForbiddenException();
-      let api = await this.apiRepository.findOne({
-        userId: user.id.toString(),
-      });
-      const index = api.data.findIndex((item: any) => item.id == id);
+      // Checking
+      const { api, index, user } = await this.checkApiKey(query, id);
+      // updating
       api.data[index] = { ...api.data[index], ...updatePost };
-
-      return await this.apiRepository.update(
+      await this.apiRepository.update(
         { userId: user.id.toString() },
         { data: api.data },
       );
-      return;
+      return api.data[index];
     } catch (error) {
       throw error;
     }
   }
 
-  async remove(id: string): Promise<DeleteResult> {
-    return this.apiRepository.delete(id);
+  async remove(
+    id: string,
+    query: queryType | undefined,
+  ): Promise<{ msg: string }> {
+    try {
+      const { api, index, user } = await this.checkApiKey(query, id);
+      api.data.splice(index, 1);
+      await this.apiRepository.update(
+        { userId: user.id.toString() },
+        { data: api.data },
+      );
+      return { msg: 'Deleted' };
+    } catch (error) {}
   }
 }

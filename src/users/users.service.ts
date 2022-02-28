@@ -3,15 +3,15 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
+  UnauthorizedException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { ApiService } from 'src/api/api.service';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
